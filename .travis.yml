@@ -1,0 +1,39 @@
+language: generic
+sudo: required
+services:
+  - docker
+
+# Build docker containers using test files to run tests
+before_install:
+  - docker build -t josec0609/docker-react -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true josec0609/docker-react npm test
+
+# After tests, build each container in the multi-container app
+after_success:
+  - docker build -t josec0609/multi-client ./client
+  - docker build -t josec0609/multi-nginx ./nginx
+  - docker build -t josec0609/multi-server ./server
+  - docker build -t josec0609/multi-worker ./worker
+  # Log in to the docker CLI
+  # echo password will emit password variable over stdin to next command following | 
+  # --password-stdin flag tells docker to expect password over stdin
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin 
+  # Take each image built and push them to docker hub
+  - docker push josec0609/multi-client
+  - docker push josec0609/multi-nginx
+  - docker push josec0609/multi-server
+  - docker push josec0609/multi-worker
+
+# deploy:
+#   provider: elasticbeanstalk
+#   region: "us-east-2"
+#   app: "docker-react"
+#   env: "DockerReact-env"
+#   bucket_name: "elasticbeanstalk-us-east-2-639853745531"
+#   bucket_path: "docker-react"
+#   on: # only deploy when a commit has been made to master branch
+#     branch: master 
+#   access_key_id: $AWS_ACCESS_KEY
+#   secret_access_key: $AWS_SECRET_KEY
