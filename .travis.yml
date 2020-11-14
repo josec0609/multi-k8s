@@ -26,14 +26,14 @@ after_success:
   - docker push josec0609/multi-server
   - docker push josec0609/multi-worker
 
-# deploy:
-#   provider: elasticbeanstalk
-#   region: "us-east-2"
-#   app: "docker-react"
-#   env: "DockerReact-env"
-#   bucket_name: "elasticbeanstalk-us-east-2-639853745531"
-#   bucket_path: "docker-react"
-#   on: # only deploy when a commit has been made to master branch
-#     branch: master 
-#   access_key_id: $AWS_ACCESS_KEY
-#   secret_access_key: $AWS_SECRET_KEY
+deploy:
+  provider: elasticbeanstalk
+  region: "us-east-2"
+  app: "multi-docker"
+  env: "MultiDocker-env"
+  bucket_name: "elasticbeanstalk-us-east-2-639853745531"
+  bucket_path: "docker-multi"
+  on: # only deploy when a commit has been made to master branch
+    branch: master 
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
