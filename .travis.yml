@@ -3,9 +3,12 @@ sudo: required
 services:
   - docker
 
-# Build docker containers using test files to run tests
+# Install/authenticate Google Cloud SDK & update kubectl in gcloud cluster
 before_install:
-  - docker build -t josec0609/docker-react -f ./client/Dockerfile.dev ./client
+  - curl https://sdk.cloud.google.com | bash > /dev/null;
+  - source $HOME/google-cloud-sdk/path.bash.inc
+  - gcloud components update kubectl
+  - gcloud auth activate-service-acount --key-file service-account.json
 
 script:
   - docker run -e CI=true josec0609/docker-react npm test
