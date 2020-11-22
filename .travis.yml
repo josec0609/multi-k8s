@@ -18,7 +18,7 @@ before_install:
   # Update kubectl in gcloud cluster
   - gcloud components update kubectl
   # use unencrypted service account json file to authenticate w/ gcloud
-  - gcloud auth activate-service-acount --key-file service-account.json
+  - gcloud auth activate-service-account --key-file service-account.json
   - gcloud config set project multi-k8s-296303
   - gcloud config set compute/zone us-central1-c
   - gcloud container clusters get-credentials multi-cluster
