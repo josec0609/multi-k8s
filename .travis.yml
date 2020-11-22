@@ -3,40 +3,34 @@ sudo: required
 services:
   - docker
 
-# Install/authenticate Google Cloud SDK & update kubectl in gcloud cluster
+env:
+  global:
+    # GET SHA from github commit and set as environment variable (to apply tag SHA as version in docker hub images)
+    - GIT_SHA=$(git rev-parse HEAD)
+    - CLOUDSDK_CORE_DISABLE_PROMPTS=1
+
 before_install:
+  # Takes encrypted service account json and decrypts it back in same directory
+  - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
+  # Install Google Cloud SDK
   - curl https://sdk.cloud.google.com | bash > /dev/null;
   - source $HOME/google-cloud-sdk/path.bash.inc
+  # Update kubectl in gcloud cluster
   - gcloud components update kubectl
+  # use unencrypted service account json file to authenticate w/ gcloud
   - gcloud auth activate-service-acount --key-file service-account.json
+  - gcloud config set project multi-k8s-296303
+  - gcloud config set compute/zone us-central1-c
+  - gcloud container clusters get-credentials multi-cluster
+  # Use environment variables input in Travis CI to login into docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker build -t josec0609/react-test -f ./client/Dockerfile.dev ./client
 
 script:
   - docker run -e CI=true josec0609/docker-react npm test
 
-# After tests, build each container in the multi-container app
-after_success:
-  - docker build -t josec0609/multi-client ./client
-  - docker build -t josec0609/multi-nginx ./nginx
-  - docker build -t josec0609/multi-server ./server
-  - docker build -t josec0609/multi-worker ./worker
-  # Log in to the docker CLI
-  # echo password will emit password variable over stdin to next command following | 
-  # --password-stdin flag tells docker to expect password over stdin
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin 
-  # Take each image built and push them to docker hub
-  - docker push josec0609/multi-client
-  - docker push josec0609/multi-nginx
-  - docker push josec0609/multi-server
-  - docker push josec0609/multi-worker
-
 deploy:
-  provider: elasticbeanstalk
-  region: "us-east-2"
-  app: "multi-docker"
-  env: "MultiDocker-env"
-  bucket_name: "elasticbeanstalk-us-east-2-639853745531"
-  bucket_path: "docker-multi"
+  provider: script
+  script: bash ./deploy.sh
   on: # only deploy when a commit has been made to master branch
     branch: master 
-  access_key_id: $AWS_ACCESS_KEY
-  secret_access_key: $AWS_SECRET_KEY
